@@ -28,6 +28,7 @@ install:
   - source activate test-environment
   - travis_retry pip install --upgrade pip setuptools wheel
   - python setup.py install
+  - pip install torchvision
   - pip install --upgrade pytest
 
 script:
