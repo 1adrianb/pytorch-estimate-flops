@@ -1,3 +1,6 @@
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  [![Build Status](https://travis-ci.com/1adrianb/pytorch-estimate-flops.svg?branch=master)](https://travis-ci.com/1adrianb/face-alignment)
+[![PyPI](https://img.shields.io/pypi/v/nine.svg?style=flat-square)](https://pypi.org/project/thpflops/)
+
 # pytorch-estimate-flops
 
 Simple pytorch utility that estimates the number of FLOPs for a given network. For now only some basic operations are supported (basically the ones I needed for my models). More will be added soon.
