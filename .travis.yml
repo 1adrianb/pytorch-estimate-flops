@@ -37,7 +37,8 @@ script:
 deploy:
   - provider: pypi
     user: 1adrianb
-    password: password_placeholder
+    password:
+      secure: JOAPrJhBk9TOq1RZquSroieGgNXl4ZcZOy9a1nefzLnU+hzTCsxRbm4aoYFpnqxJ1za99bzCUnYSE6vYLYIVae2SJysA7IcZ00Qr9bOu5ALmwiMIPMkMNrKRaoxwFoZOy6QgS06EPXn6O3fNuOMTfp+CjlKDACczC2rhrjxog5fqgjbKMntMthpgA6/FjpLM4nkwVNpXRp64aZ6QV8dGQsIWAkiohgoSY7Im1QdM4uy9dQONHJdQGpcOWy7Y5sBshCvQN/fO17yNW57iX9K3lmiRLkA5HkF5hN9GDrCXgtE2zBUnkeS1+b3A6jLZ75ibwgl6OF2dh7DxPmtCcH/Mn4pGuV30MNU7Yoi4+9t1VIrpseo4EsorJTdRvyKwhHvjWMY9YHdFIrctG6PTByM7Cz2qxWummYmJlT6Jm5U/jeQE5JrvnvHUr/be6TKoB1j+urnahcas2VVKh9d984//WYkcIZ2c6gFigHMfdw+mmsr4b/BDhJw6t2VsYcT2RfETYjl9LzxnY4VMWZ7zs7g/XmQznDi8G5gCrW21+ix17J5xNbAoGOXhC6BxMv9mLl/G2CEzngqUu0zy6/WVs0PA1TUiwvBki0wUvlpKttHwAon2ywCw1/zxjcqCH9mGUtf/X0xibFcxo0DV4rv6QtFq+TYg1LROJmEP5LMnnOaeRXY=
     on: 
       tags: true
       branch: master
