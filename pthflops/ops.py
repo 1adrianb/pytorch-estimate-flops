@@ -15,6 +15,7 @@ def string_to_shape(node_string, bias=False):
     """
     if not isinstance(node_string, str):
         node_string = str(node_string)
+    node_string = node_string.replace('!', '')
     if bias:
         m = re.search(r"Float\((\d+)\)", node_string)
     else:
@@ -100,7 +101,11 @@ def _count_bn(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    inp = string_to_shape(list(node.inputs())[0])
+    if 'BatchNorm1d' in node.scopeName():
+        inp = string_to_shape(list(node.inputs())[1])
+    else:
+        inp = string_to_shape(list(node.inputs())[0])
+    
     total_ops = reduce(lambda x, y: x * y, inp) * 2
     return total_ops
 
