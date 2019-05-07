@@ -11,5 +11,5 @@ class Tester(unittest.TestCase):
         input = torch.rand(1, 3, 224, 224)
         net = resnet18()
         estimated = count_ops(net, input, print_readable=False)
-        
+
         assert(expected == estimated)

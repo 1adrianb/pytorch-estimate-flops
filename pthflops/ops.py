@@ -105,7 +105,7 @@ def _count_bn(node):
         inp = string_to_shape(list(node.inputs())[1])
     else:
         inp = string_to_shape(list(node.inputs())[0])
-    
+
     total_ops = reduce(lambda x, y: x * y, inp) * 2
     return total_ops
 
