@@ -23,7 +23,7 @@ def string_to_shape(node_string, bias=False):
     return m if m is None else tuple(int(x) for x in m.groups()[0].split(','))
 
 
-def _count_conv2d(node):
+def _count_convNd(node):
     r"""Estimates the number of FLOPs in conv layer
 
     .. warning::
@@ -39,16 +39,19 @@ def _count_conv2d(node):
     bias = string_to_shape(list(node.inputs())[0], True)
 
     f_in = inp[1]
-    kh, kw = node['kernel_shape']
+    kernel_size = node['kernel_shape']
+    
+    kernel_ops = f_in
+    for ks in kernel_size:
+        kernel_ops *= ks 
 
-    kernel_ops = kh * kw * f_in // node['group']
+    kernel_ops = kernel_ops // node['group']
     bias_ops = 1 if bias is not None else 0
     combined_ops = kernel_ops + bias_ops
 
     total_ops = combined_ops * reduce(lambda x, y: x * y, out)
 
     return total_ops
-
 
 def _count_relu(node):
     r"""Estimates the number of FLOPs of a  ReLU activation.
@@ -150,7 +153,7 @@ def _undefined_op(node):
 count_operations = defaultdict(
     lambda: _undefined_op,
     {
-        'onnx::Conv': _count_conv2d,
+        'onnx::Conv': _count_convNd,
         'onnx::Relu': _count_relu,
         'onnx::AveragePool': _count_avgpool,
         'onnx::MaxPool': _count_maxpool,
