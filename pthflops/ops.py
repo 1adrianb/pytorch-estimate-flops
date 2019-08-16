@@ -3,6 +3,7 @@ from functools import reduce
 from collections import defaultdict
 import torch
 
+from .utils import print_table
 
 def string_to_shape(node_string, bias=False):
     r"""Extract the shape of a given tensor from an onnx string
@@ -161,12 +162,13 @@ count_operations = defaultdict(
 )
 
 
-def count_ops(model, input, print_readable=True, *args):
+def count_ops(model, input, print_readable=True, verbose=True, *args):
     r"""Estimates the number of FLOPs of an :class:`torch.nn.Module`
 
     :param model: the :class:`torch.nn.Module`
     :param input: a N-d :class:`torch.tensor` containing the input to the model
     :param print_readable: boolean, if True will print the number of FLOPs. default is True
+    :param verbose: boolean, if True will print all the non-zero OPS operations from the network
 
     :return: number of FLOPs
     :rtype: `int`
@@ -181,10 +183,17 @@ def count_ops(model, input, print_readable=True, *args):
     graph = trace.graph()
 
     ops = 0
+    all_data = []
     for node in graph.nodes():
-        ops += count_operations[node.kind()](node)
+        current_ops = count_operations[node.kind()](node)
+        ops += current_ops
+
+        if current_ops and verbose:
+            all_data.append([f'{node.scopeName()}/{node.kind()}', current_ops])
 
     if print_readable:
+        if verbose:
+            print_table(all_data)
         print("Input size: {0}".format(tuple(input.shape)))
         print("{:,} FLOPs or approx. {:,.2f} GFLOPs".format(ops, ops / 1e+9))
 
