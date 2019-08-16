@@ -5,6 +5,7 @@ import torch
 
 from .utils import print_table
 
+
 def string_to_shape(node_string, bias=False):
     r"""Extract the shape of a given tensor from an onnx string
 
@@ -41,10 +42,10 @@ def _count_convNd(node):
 
     f_in = inp[1]
     kernel_size = node['kernel_shape']
-    
+
     kernel_ops = f_in
     for ks in kernel_size:
-        kernel_ops *= ks 
+        kernel_ops *= ks
 
     kernel_ops = kernel_ops // node['group']
     bias_ops = 1 if bias is not None else 0
@@ -53,6 +54,7 @@ def _count_convNd(node):
     total_ops = combined_ops * reduce(lambda x, y: x * y, out)
 
     return total_ops
+
 
 def _count_relu(node):
     r"""Estimates the number of FLOPs of a  ReLU activation.
@@ -192,7 +194,7 @@ def count_ops(model, input, print_readable=True, verbose=True, *args):
         ops += current_ops
 
         if current_ops and verbose:
-            all_data.append([f'{node.scopeName()}/{node.kind()}', current_ops])
+            all_data.append(['{}/{}'.format(node.scopeName(), node.kind()), current_ops])
 
     if print_readable:
         if verbose:

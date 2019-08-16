@@ -8,13 +8,13 @@ def print_table(rows, header=['Operation', 'OPS']):
     """
     if len(rows) == 0:
         return
-    col_max = [max([len(str(val[i])) for val in rows])+3 for i in range(len(rows[0]))]
-    row_format = ''.join(["{:<"+str(length)+"}" for length in col_max])
-    
-    if len(header)>0:
+    col_max = [max([len(str(val[i])) for val in rows]) + 3 for i in range(len(rows[0]))]
+    row_format = ''.join(["{:<" + str(length) + "}" for length in col_max])
+
+    if len(header) > 0:
         print(row_format.format(*header))
-        print(row_format.format(*['-'*(val-2) for val in col_max]))
+        print(row_format.format(*['-' * (val - 2) for val in col_max]))
 
     for row in rows:
         print(row_format.format(*row))
-    print(row_format.format(*['-'*(val-3) for val in col_max]))
+    print(row_format.format(*['-' * (val - 3) for val in col_max]))
