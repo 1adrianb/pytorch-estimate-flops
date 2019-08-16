@@ -167,11 +167,15 @@ count_operations = defaultdict(
 )
 
 
-def count_ops(model, input, print_readable=True, verbose=True, *args):
+def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
     r"""Estimates the number of FLOPs of an :class:`torch.nn.Module`
 
     :param model: the :class:`torch.nn.Module`
     :param input: a N-d :class:`torch.tensor` containing the input to the model
+    :param custom_ops: :class:`dict` containing custom counting functions. The keys represent the name
+    of the targeted aten op, while the value a lambda or callback to a function returning the number of ops.
+    This can override the ops present in the package.
+    :param ignore_layers: :class:`list` containing the name of the modules to be ignored.
     :param print_readable: boolean, if True will print the number of FLOPs. default is True
     :param verbose: boolean, if True will print all the non-zero OPS operations from the network
 
@@ -190,7 +194,12 @@ def count_ops(model, input, print_readable=True, verbose=True, *args):
     ops = 0
     all_data = []
     for node in graph.nodes():
-        current_ops = count_operations[node.kind()](node)
+        if any(name in node.scopeName() for name in ignore_layers):
+            continue
+        if node.kind() in custom_ops.keys():
+            custom_ops = custom_ops[node.kind()](node)
+        else:
+            current_ops = count_operations[node.kind()](node)
         ops += current_ops
 
         if current_ops and verbose:
