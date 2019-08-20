@@ -186,6 +186,9 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     if next(model.parameters()).device != input.device:
         input.to(next(model.parameters()).device)
 
+    # Place the model in eval mode, required for some models
+    model.eval()
+
     # Convert pytorch module to ONNX
     trace, _ = torch.jit.get_trace_graph(model, input, *args)
     torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
