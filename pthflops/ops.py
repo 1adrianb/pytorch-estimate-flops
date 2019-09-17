@@ -85,6 +85,22 @@ def _count_avgpool(node):
     return total_ops
 
 
+def _count_globalavgpool(node):
+    r"""Estimates the number of FLOPs of an Average Pooling layer.
+
+    :param node_string: an onnx node defining an average pooling layer
+
+    :return: number of FLOPs
+    :rtype: `int`
+    """
+    inp = string_to_shape(list(node.inputs())[0])
+    out = string_to_shape(list(node.outputs())[0])
+    ops_add = reduce(lambda x, y: x * y, [inp[-2], inp[-1]]) - 1
+    ops_div = 1
+    total_ops = (ops_add + ops_div) * reduce(lambda x, y: x * y, out)
+    return total_ops
+
+
 def _count_maxpool(node):
     r"""Estimates the number of FLOPs of a Max Pooling layer.
 
@@ -131,7 +147,7 @@ def _count_linear(node):
     return total_ops
 
 
-def _count_add(node):
+def _count_add_mul(node):
     r"""Estimates the number of FLOPs of a summation op.
 
     :param node_string: an onnx node defining a summation op
@@ -162,7 +178,10 @@ count_operations = defaultdict(
         'onnx::MaxPool': _count_maxpool,
         'onnx::BatchNormalization': _count_bn,
         'onnx::Gemm': _count_linear,
-        'onnx::Add': _count_add
+        'onnx::MatMul': _count_linear,
+        'onnx::Add': _count_add_mul,
+        'onnx::Mul': _count_add_mul,
+        'onnx::GlobalAveragePool': _count_globalavgpool
     }
 )
 
@@ -218,4 +237,4 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     if model_status:
         model.train()
 
-    return ops
+    return ops, all_data
