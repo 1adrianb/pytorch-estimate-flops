@@ -27,7 +27,7 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - travis_retry pip install --upgrade pip setuptools wheel
-  - conda install pytorch-cpu torchvision-cpu -c pytorch
+  - conda install pytorch torchvision cpuonly -c pytorch
   - python setup.py install
   - pip install --upgrade pytest
 
