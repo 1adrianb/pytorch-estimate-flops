@@ -210,9 +210,14 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     model.eval()
 
     # Convert pytorch module to ONNX
-    trace, _ = torch.jit.get_trace_graph(model, input, *args)
-    torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
-    graph = trace.graph()
+    try:
+        # PyTorch 1.3 and bellow
+        trace, _ = torch.jit.get_trace_graph(model, input, *args)
+        torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
+        graph = trace.graph()
+    except:
+        trace, _ = torch.jit._get_trace_graph(model, input, *args)
+        graph = torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
 
     ops = 0
     all_data = []
