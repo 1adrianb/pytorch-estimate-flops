@@ -1,9 +1,12 @@
 import torch
-import unittest, pytest
+import unittest
+import pytest
 from pthflops import count_ops
 from torchvision.models import resnet18
 
 # TODO: Add test for every op
+
+
 class Tester(unittest.TestCase):
 
     def test_overall(self):

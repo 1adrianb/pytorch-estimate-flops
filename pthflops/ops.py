@@ -6,6 +6,7 @@ import torch
 
 from .utils import print_table, scope_name_workaround
 
+
 def string_to_shape(node_string, bias=False):
     r"""Extract the shape of a given tensor from an onnx string
 
@@ -24,21 +25,23 @@ def string_to_shape(node_string, bias=False):
         m = re.search(r"Float\(([\d\s\,]+)\)", node_string)
     return m if m is None else tuple(int(x) for x in m.groups()[0].split(','))
 
+
 def parse_node_info(node):
     inputs = {}
     inputs_names = []
     for idx, inp in enumerate(node.inputs()):
         inp = str(inp)
         curr_node_name = re.search(r'(.*) defined in ', inp).group(1)
-        extracted_data = re.search(r'%'+curr_node_name+r' : Float\(([^%]*)\)[,| ]', inp).group(1)
+        extracted_data = re.search(r'%' + curr_node_name + r' : Float\(([^%]*)\)[,| ]', inp).group(1)
         inputs[curr_node_name] = re.findall(r'([0-9]*):', extracted_data)
         inputs[curr_node_name] = list(map(int, inputs[curr_node_name]))
         inputs_names.append(curr_node_name)
     node = str(node)
     node_name = re.search(r'%(.*) : ', node).group(1)
-    out_size = re.search('Float\([0-9]+:([0-9]+),', node).group(1)
-    
+    out_size = re.search(r'Float\([0-9]+:([0-9]+),', node).group(1)
+
     return node_name, inputs, inputs_names, int(out_size)
+
 
 def _count_convNd(node, version=2):
     r"""Estimates the number of FLOPs in conv layer
@@ -53,7 +56,7 @@ def _count_convNd(node, version=2):
     """
     kernel_size = node['kernel_shape']
     num_groups = node['group']
-    
+
     if version == 1:
         inp = string_to_shape(list(node.inputs())[0])
         out = string_to_shape(list(node.outputs())[0])
@@ -64,7 +67,7 @@ def _count_convNd(node, version=2):
         node_name, inputs, inputs_names, out_ops = parse_node_info(node)
         f_in = inputs[inputs_names[0]][1]
         bias_ops = 1 if len(inputs_names) == 3 else 0
-        
+
     kernel_ops = f_in
     for ks in kernel_size:
         kernel_ops *= ks
@@ -75,6 +78,7 @@ def _count_convNd(node, version=2):
     total_ops = combined_ops * out_ops
 
     return total_ops
+
 
 def _count_relu(node, version=2):
     r"""Estimates the number of FLOPs of a  ReLU activation.
@@ -93,6 +97,7 @@ def _count_relu(node, version=2):
     total_ops = 2 * reduce(lambda x, y: x * y, inp)  # also count the comparison
     return total_ops
 
+
 def _count_avgpool(node, version=2):
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
@@ -106,11 +111,12 @@ def _count_avgpool(node, version=2):
         out_ops = reduce(lambda x, y: x * y, out)
     elif version == 2:
         node_name, io_node_names, out_ops = parse_node_info(node)
-        
+
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
     ops_div = 1
     total_ops = (ops_add + ops_div) * out_ops
     return total_ops
+
 
 def _count_globalavgpool(node, version=2):
     r"""Estimates the number of FLOPs of an Average Pooling layer.
@@ -127,7 +133,7 @@ def _count_globalavgpool(node, version=2):
     elif version == 2:
         node_name, inputs, inputs_names, out_ops = parse_node_info(node)
         inp = inputs[inputs_names[0]]
-        
+
     ops_add = reduce(lambda x, y: x * y, [inp[-2], inp[-1]]) - 1
     ops_div = 1
     total_ops = (ops_add + ops_div) * out_ops
@@ -147,7 +153,7 @@ def _count_maxpool(node, version=2):
         out_ops = reduce(lambda x, y: x * y, out)
     elif version == 2:
         node_name, inputs, inputs_names, out_ops = parse_node_info(node)
-        
+
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
     total_ops = ops_add * out_ops
     return total_ops
@@ -191,7 +197,7 @@ def _count_linear(node, version=2):
         node_name, inputs, inputs_names, out_ops = parse_node_info(node)
         inp = inputs[inputs_names[0]]
         f_in = inputs[inputs_names[0]][1]
-        
+
     total_ops = f_in * out_ops
     return total_ops
 
@@ -268,7 +274,7 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
         with scope_name_workaround():
             trace, _ = torch.jit._get_trace_graph(model, input, *args)
             graph = torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
-        
+
         if LooseVersion(torch.__version__) >= LooseVersion('1.6.0'):
             version = 2
     else:

@@ -1,6 +1,7 @@
 
 import torch
 
+
 def print_table(rows, header=['Operation', 'OPS']):
     r"""Simple helper function to print a list of lists as a table
 
@@ -20,9 +21,11 @@ def print_table(rows, header=['Operation', 'OPS']):
     for row in rows:
         print(row_format.format(*row))
     print(row_format.format(*['-' * (val - 3) for val in col_max]))
-    
+
 # Workaround for scopename in pytorch 1.4 and newer
 # see: https://github.com/pytorch/pytorch/issues/33463
+
+
 class scope_name_workaround(object):
     def __init__(self):
         self.backup = None
@@ -55,7 +58,7 @@ class scope_name_workaround(object):
                 tracing_state.pop_scope()
                 tracing_state._traced_module_stack.pop()
             return result
-        
+
         self.backup = torch.nn.Module._slow_forward
         setattr(torch.nn.Module, '_slow_forward', _slow_forward)
 
