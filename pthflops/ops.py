@@ -283,7 +283,7 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
         if any(name in node.scopeName() for name in ignore_layers):
             continue
         if node.kind() in custom_ops.keys():
-            custom_ops = custom_ops[node.kind()](node, version)
+            current_ops = custom_ops[node.kind()](node, version)
         else:
             current_ops = count_operations[node.kind()](node, version)
         ops += current_ops
