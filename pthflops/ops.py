@@ -1,10 +1,10 @@
 import re
 from functools import reduce
 from collections import defaultdict
+from distutils.version import LooseVersion
 import torch
 
-from .utils import print_table
-
+from .utils import print_table, scope_name_workaround
 
 def string_to_shape(node_string, bias=False):
     r"""Extract the shape of a given tensor from an onnx string
@@ -24,8 +24,23 @@ def string_to_shape(node_string, bias=False):
         m = re.search(r"Float\(([\d\s\,]+)\)", node_string)
     return m if m is None else tuple(int(x) for x in m.groups()[0].split(','))
 
+def parse_node_info(node):
+    inputs = {}
+    inputs_names = []
+    for idx, inp in enumerate(node.inputs()):
+        inp = str(inp)
+        curr_node_name = re.search(r'(.*) defined in ', inp).group(1)
+        extracted_data = re.search(r'%'+curr_node_name+r' : Float\(([^%]*)\)[,| ]', inp).group(1)
+        inputs[curr_node_name] = re.findall(r'([0-9]*):', extracted_data)
+        inputs[curr_node_name] = list(map(int, inputs[curr_node_name]))
+        inputs_names.append(curr_node_name)
+    node = str(node)
+    node_name = re.search(r'%(.*) : ', node).group(1)
+    out_size = re.search('Float\([0-9]+:([0-9]+),', node).group(1)
+    
+    return node_name, inputs, inputs_names, int(out_size)
 
-def _count_convNd(node):
+def _count_convNd(node, version=2):
     r"""Estimates the number of FLOPs in conv layer
 
     .. warning::
@@ -36,27 +51,32 @@ def _count_convNd(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    inp = string_to_shape(list(node.inputs())[0])
-    out = string_to_shape(list(node.outputs())[0])
-    bias = string_to_shape(list(node.inputs())[0], True)
-
-    f_in = inp[1]
     kernel_size = node['kernel_shape']
-
+    num_groups = node['group']
+    
+    if version == 1:
+        inp = string_to_shape(list(node.inputs())[0])
+        out = string_to_shape(list(node.outputs())[0])
+        out_ops = reduce(lambda x, y: x * y, out)
+        bias_ops = 1 if string_to_shape(list(node.inputs())[0], True) is not None else 0
+        f_in = inp[1]
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        f_in = inputs[inputs_names[0]][1]
+        bias_ops = 1 if len(inputs_names) == 3 else 0
+        
     kernel_ops = f_in
     for ks in kernel_size:
         kernel_ops *= ks
 
-    kernel_ops = kernel_ops // node['group']
-    bias_ops = 1 if bias is not None else 0
+    kernel_ops = kernel_ops // num_groups
     combined_ops = kernel_ops + bias_ops
 
-    total_ops = combined_ops * reduce(lambda x, y: x * y, out)
+    total_ops = combined_ops * out_ops
 
     return total_ops
 
-
-def _count_relu(node):
+def _count_relu(node, version=2):
     r"""Estimates the number of FLOPs of a  ReLU activation.
     The function will count the comparison operation as a FLOP.
 
@@ -65,12 +85,15 @@ def _count_relu(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    inp = string_to_shape(list(node.inputs())[0])
+    if version == 1:
+        inp = string_to_shape(list(node.inputs())[0])
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        inp = inputs[inputs_names[0]]
     total_ops = 2 * reduce(lambda x, y: x * y, inp)  # also count the comparison
     return total_ops
 
-
-def _count_avgpool(node):
+def _count_avgpool(node, version=2):
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
     :param node_string: an onnx node defining an average pooling layer
@@ -78,14 +101,18 @@ def _count_avgpool(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    out = string_to_shape(list(node.outputs())[0])
+    if version == 1:
+        out = string_to_shape(list(node.outputs())[0])
+        out_ops = reduce(lambda x, y: x * y, out)
+    elif version == 2:
+        node_name, io_node_names, out_ops = parse_node_info(node)
+        
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
     ops_div = 1
-    total_ops = (ops_add + ops_div) * reduce(lambda x, y: x * y, out)
+    total_ops = (ops_add + ops_div) * out_ops
     return total_ops
 
-
-def _count_globalavgpool(node):
+def _count_globalavgpool(node, version=2):
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
     :param node_string: an onnx node defining an average pooling layer
@@ -93,15 +120,21 @@ def _count_globalavgpool(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    inp = string_to_shape(list(node.inputs())[0])
-    out = string_to_shape(list(node.outputs())[0])
+    if version == 1:
+        inp = string_to_shape(list(node.inputs())[0])
+        out = string_to_shape(list(node.outputs())[0])
+        out_ops = reduce(lambda x, y: x * y, out)
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        inp = inputs[inputs_names[0]]
+        
     ops_add = reduce(lambda x, y: x * y, [inp[-2], inp[-1]]) - 1
     ops_div = 1
-    total_ops = (ops_add + ops_div) * reduce(lambda x, y: x * y, out)
+    total_ops = (ops_add + ops_div) * out_ops
     return total_ops
 
 
-def _count_maxpool(node):
+def _count_maxpool(node, version=2):
     r"""Estimates the number of FLOPs of a Max Pooling layer.
 
     :param node_string: an onnx node defining a max pooling layer
@@ -109,13 +142,18 @@ def _count_maxpool(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    out = string_to_shape(list(node.outputs())[0])
+    if version == 1:
+        out = string_to_shape(list(node.outputs())[0])
+        out_ops = reduce(lambda x, y: x * y, out)
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
-    total_ops = ops_add * reduce(lambda x, y: x * y, out)
+    total_ops = ops_add * out_ops
     return total_ops
 
 
-def _count_bn(node):
+def _count_bn(node, version=2):
     r"""Estimates the number of FLOPs of a Batch Normalisation operation.
 
     :param node_string: an onnx node defining a batch norm op
@@ -123,16 +161,20 @@ def _count_bn(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    if 'BatchNorm1d' in node.scopeName():
-        inp = string_to_shape(list(node.inputs())[1])
-    else:
-        inp = string_to_shape(list(node.inputs())[0])
+    if version == 1:
+        if 'BatchNorm1d' in node.scopeName():
+            inp = string_to_shape(list(node.inputs())[1])
+        else:
+            inp = string_to_shape(list(node.inputs())[0])
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        inp = inputs[inputs_names[0]]
 
     total_ops = reduce(lambda x, y: x * y, inp) * 2
     return total_ops
 
 
-def _count_linear(node):
+def _count_linear(node, version=2):
     r"""Estimates the number of a GEMM or linear layer.
 
     :param node_string: an onnx node defining a GEMM or linear layer
@@ -140,14 +182,21 @@ def _count_linear(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    inp = string_to_shape(list(node.inputs())[0])
-    out = string_to_shape(list(node.outputs())[0])
-    f_in = inp[1]
-    total_ops = f_in * reduce(lambda x, y: x * y, out)
+    if version == 1:
+        inp = string_to_shape(list(node.inputs())[0])
+        out = string_to_shape(list(node.outputs())[0])
+        f_in = inp[1]
+        out_ops = reduce(lambda x, y: x * y, out)
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        inp = inputs[inputs_names[0]]
+        f_in = inputs[inputs_names[0]][1]
+        
+    total_ops = f_in * out_ops
     return total_ops
 
 
-def _count_add_mul(node):
+def _count_add_mul(node, version=2):
     r"""Estimates the number of FLOPs of a summation op.
 
     :param node_string: an onnx node defining a summation op
@@ -155,11 +204,15 @@ def _count_add_mul(node):
     :return: number of FLOPs
     :rtype: `int`
     """
-    inp = string_to_shape(list(node.inputs())[0])
+    if version == 1:
+        inp = string_to_shape(list(node.inputs())[0])
+    elif version == 2:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        inp = inputs[inputs_names[0]]
     return reduce(lambda x, y: x * y, inp)
 
 
-def _undefined_op(node):
+def _undefined_op(node, version=2):
     r"""Default case for undefined or free (in terms of FLOPs) operations
 
     :param node_string: an onnx node
@@ -210,14 +263,19 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     model.eval()
 
     # Convert pytorch module to ONNX
-    try:
+    version = 1
+    if LooseVersion(torch.__version__) > LooseVersion('1.3.1'):
+        with scope_name_workaround():
+            trace, _ = torch.jit._get_trace_graph(model, input, *args)
+            graph = torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
+        
+        if LooseVersion(torch.__version__) >= LooseVersion('1.6.0'):
+            version = 2
+    else:
         # PyTorch 1.3 and bellow
         trace, _ = torch.jit.get_trace_graph(model, input, *args)
         torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
         graph = trace.graph()
-    except:
-        trace, _ = torch.jit._get_trace_graph(model, input, *args)
-        graph = torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
 
     ops = 0
     all_data = []
@@ -225,9 +283,9 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
         if any(name in node.scopeName() for name in ignore_layers):
             continue
         if node.kind() in custom_ops.keys():
-            custom_ops = custom_ops[node.kind()](node)
+            custom_ops = custom_ops[node.kind()](node, version)
         else:
-            current_ops = count_operations[node.kind()](node)
+            current_ops = count_operations[node.kind()](node, version)
         ops += current_ops
 
         if current_ops and verbose:
