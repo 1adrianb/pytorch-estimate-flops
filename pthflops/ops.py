@@ -25,6 +25,7 @@ def string_to_shape(node_string, bias=False):
         m = re.search(r"Float\(([\d\s\,]+)\)", node_string)
     return m if m is None else tuple(int(x) for x in m.groups()[0].split(','))
 
+
 def _parse_node_inputs(node):
     inputs = {}
     inputs_names = []
@@ -42,6 +43,7 @@ def _parse_node_inputs(node):
         inputs[curr_node_name] = list(map(int, inputs[curr_node_name]))
         inputs_names.append(curr_node_name)
     return inputs, inputs_names
+
 
 def parse_node_info(node):
     inputs, inputs_names = _parse_node_inputs(node)
@@ -119,7 +121,7 @@ def _count_avgpool(node, version=2):
         out = string_to_shape(list(node.outputs())[0])
         out_ops = reduce(lambda x, y: x * y, out)
     elif version == 2:
-       node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
 
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
     ops_div = 1
