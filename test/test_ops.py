@@ -1,9 +1,9 @@
 import torch
-import unittest
+import unittest, pytest
 from pthflops import count_ops
 from torchvision.models import resnet18
 
-
+# TODO: Add test for every op
 class Tester(unittest.TestCase):
 
     def test_overall(self):
@@ -12,4 +12,4 @@ class Tester(unittest.TestCase):
         net = resnet18()
         estimated, estimations_dict = count_ops(net, input, print_readable=False, verbose=False)
 
-        assert(expected == estimated)
+        assert expected == pytest.approx(estimated, 1000000)
