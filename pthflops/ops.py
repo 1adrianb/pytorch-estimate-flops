@@ -272,6 +272,10 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     :return: number of FLOPs
     :rtype: `int`
     """
+    # Remove dataparallel wrapper if present
+    if isinstance(model, torch.nn.DataParallel):
+        model = model.module
+
     # Make sure that the input is on the same device as the model
     input_device = input.device if not isinstance(input, Iterable) else input[0].device
     if next(model.parameters()).device != input_device:
