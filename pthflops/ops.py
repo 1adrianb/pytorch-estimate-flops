@@ -40,7 +40,7 @@ def _parse_node_inputs(node):
             return _parse_node_inputs(
                 list(node.inputs())[0].node()
             )
-        inputs[curr_node_name] = re.findall(r'([0-9]*):', extracted_data)
+        inputs[curr_node_name] = re.findall(r'(\d+):', extracted_data)
         inputs[curr_node_name] = list(map(int, inputs[curr_node_name]))
         inputs_names.append(curr_node_name)
     return inputs, inputs_names
@@ -50,7 +50,7 @@ def parse_node_info(node):
     inputs, inputs_names = _parse_node_inputs(node)
     node = str(node)
     node_name = re.search(r'%(.*) : ', node).group(1)
-    out_size = re.search(r'Float\([0-9]+:([0-9]+),', node).group(1)
+    out_size = re.search(r'Float\(\d+:(\d+),', node).group(1)
 
     return node_name, inputs, inputs_names, int(out_size)
 
