@@ -2,6 +2,7 @@ import re
 from functools import reduce
 from collections import defaultdict
 from distutils.version import LooseVersion
+from typing import Iterable
 import torch
 
 from .utils import print_table, scope_name_workaround
@@ -272,8 +273,13 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     :rtype: `int`
     """
     # Make sure that the input is on the same device as the model
-    if next(model.parameters()).device != input.device:
-        input.to(next(model.parameters()).device)
+    input_device = input.device if not isinstance(input, Iterable) else input[0].device
+    if next(model.parameters()).device != input_device:
+        if isinstance(input, Iterable):
+            for inp in input:
+                inp.to(next(model.parameters()).device)
+        else:
+            input.to(next(model.parameters()).device)
 
     # Place the model in eval mode, required for some models
     model_status = model.training
