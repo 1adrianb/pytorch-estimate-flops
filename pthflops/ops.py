@@ -309,7 +309,7 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
         if LooseVersion(torch.__version__) >= LooseVersion('1.6.0') and \
                 LooseVersion(torch.__version__) < LooseVersion('1.8.0'):
             version = 2
-        else:
+        elif LooseVersion(torch.__version__) >= LooseVersion('1.8.0'):
             version = 3
     else:
         # PyTorch 1.3 and bellow

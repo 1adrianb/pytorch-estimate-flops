@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  [![Build Status](https://travis-ci.com/1adrianb/pytorch-estimate-flops.svg?branch=master)](https://travis-ci.com/1adrianb/pytorch-estimate-flops)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  [![Test Pytorch Flops Counter](https://github.com/1adrianb/pytorch-estimate-flops/workflows/Test%20Pytorch%20Flops%20Counter/badge.svg)](https://travis-ci.com/1adrianb/pytorch-estimate-flops)
 [![PyPI](https://img.shields.io/pypi/v/pthflops.svg?style=flat)](https://pypi.org/project/pthflops/)
 
 # pytorch-estimate-flops
