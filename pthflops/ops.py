@@ -27,30 +27,40 @@ def string_to_shape(node_string, bias=False):
     return m if m is None else tuple(int(x) for x in m.groups()[0].split(','))
 
 
-def _parse_node_inputs(node):
+def _parse_node_inputs(node, version=2):
     inputs = {}
     inputs_names = []
     for idx, inp in enumerate(node.inputs()):
         inp = str(inp)
         curr_node_name = re.search(r'(.*) defined in ', inp).group(1)
-        extracted_data = re.search(r'%' + curr_node_name + r' : Float\(([^%]*)\)[,| ]', inp)
+        if version <= 2:
+            extracted_data = re.search(r'%' + curr_node_name + r' : Float\(([^%]*)\)[,| ]', inp)
+        elif version == 3:
+            extracted_data = re.search(r'%' + curr_node_name + r' : Float\(((\d+, )+)', inp)
+
         if extracted_data is not None:
             extracted_data = extracted_data.group(1)
         else:
             return _parse_node_inputs(
                 list(node.inputs())[0].node()
             )
-        inputs[curr_node_name] = re.findall(r'(\d+):', extracted_data)
+        if version <= 2:
+            inputs[curr_node_name] = re.findall(r'(\d+):', extracted_data)
+        elif version == 3:
+            inputs[curr_node_name] = re.findall(r'(\d+)', extracted_data)
         inputs[curr_node_name] = list(map(int, inputs[curr_node_name]))
         inputs_names.append(curr_node_name)
     return inputs, inputs_names
 
 
-def parse_node_info(node):
-    inputs, inputs_names = _parse_node_inputs(node)
+def parse_node_info(node, version=2):
+    inputs, inputs_names = _parse_node_inputs(node, version=version)
     node = str(node)
     node_name = re.search(r'%(.*) : ', node).group(1)
-    out_size = re.search(r'Float\(\d+:(\d+),', node).group(1)
+    if version == 2:
+        out_size = re.search(r'Float\(\d+:(\d+),', node).group(1)
+    elif version == 3:
+        out_size = re.search(r'strides=\[(\d+),', node).group(1)
 
     return node_name, inputs, inputs_names, int(out_size)
 
@@ -75,8 +85,8 @@ def _count_convNd(node, version=2):
         out_ops = reduce(lambda x, y: x * y, out)
         bias_ops = 1 if string_to_shape(list(node.inputs())[0], True) is not None else 0
         f_in = inp[1]
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
         f_in = inputs[inputs_names[0]][1]
         bias_ops = 1 if len(inputs_names) == 3 else 0
 
@@ -103,8 +113,8 @@ def _count_relu(node, version=2):
     """
     if version == 1:
         inp = string_to_shape(list(node.inputs())[0])
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
         inp = inputs[inputs_names[0]]
     total_ops = 2 * reduce(lambda x, y: x * y, inp)  # also count the comparison
     return total_ops
@@ -121,8 +131,8 @@ def _count_avgpool(node, version=2):
     if version == 1:
         out = string_to_shape(list(node.outputs())[0])
         out_ops = reduce(lambda x, y: x * y, out)
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
 
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
     ops_div = 1
@@ -142,8 +152,8 @@ def _count_globalavgpool(node, version=2):
         inp = string_to_shape(list(node.inputs())[0])
         out = string_to_shape(list(node.outputs())[0])
         out_ops = reduce(lambda x, y: x * y, out)
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
         inp = inputs[inputs_names[0]]
 
     ops_add = reduce(lambda x, y: x * y, [inp[-2], inp[-1]]) - 1
@@ -163,8 +173,8 @@ def _count_maxpool(node, version=2):
     if version == 1:
         out = string_to_shape(list(node.outputs())[0])
         out_ops = reduce(lambda x, y: x * y, out)
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
 
     ops_add = reduce(lambda x, y: x * y, node['kernel_shape']) - 1
     total_ops = ops_add * out_ops
@@ -184,8 +194,8 @@ def _count_bn(node, version=2):
             inp = string_to_shape(list(node.inputs())[1])
         else:
             inp = string_to_shape(list(node.inputs())[0])
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
         inp = inputs[inputs_names[0]]
 
     total_ops = reduce(lambda x, y: x * y, inp) * 2
@@ -205,8 +215,8 @@ def _count_linear(node, version=2):
         out = string_to_shape(list(node.outputs())[0])
         f_in = inp[1]
         out_ops = reduce(lambda x, y: x * y, out)
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
         inp = inputs[inputs_names[0]]
         f_in = inputs[inputs_names[0]][1]
 
@@ -224,8 +234,8 @@ def _count_add_mul(node, version=2):
     """
     if version == 1:
         inp = string_to_shape(list(node.inputs())[0])
-    elif version == 2:
-        node_name, inputs, inputs_names, out_ops = parse_node_info(node)
+    elif version in [2, 3]:
+        node_name, inputs, inputs_names, out_ops = parse_node_info(node, version=version)
         inp = inputs[inputs_names[0]]
     return reduce(lambda x, y: x * y, inp)
 
@@ -296,8 +306,11 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
             trace, _ = torch.jit._get_trace_graph(model, input, *args)
             graph = torch.onnx._optimize_trace(trace, torch.onnx.OperatorExportTypes.ONNX)
 
-        if LooseVersion(torch.__version__) >= LooseVersion('1.6.0'):
+        if LooseVersion(torch.__version__) >= LooseVersion('1.6.0') and \
+                LooseVersion(torch.__version__) < LooseVersion('1.8.0'):
             version = 2
+        else:
+            version = 3
     else:
         # PyTorch 1.3 and bellow
         trace, _ = torch.jit.get_trace_graph(model, input, *args)
