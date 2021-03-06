@@ -13,5 +13,5 @@ class Tester(unittest.TestCase):
         input = torch.rand(1, 3, 224, 224)
         net = resnet18()
         estimated, estimations_dict = count_ops(net, input, print_readable=False, verbose=False)
-
+        expected = 1826843136
         assert expected == pytest.approx(estimated, 1000000)
