@@ -20,7 +20,7 @@ def count_ops(model, input, mode='fx', custom_ops={}, ignore_layers=[], print_re
             print_readable=print_table,
             verbose=verbose,
             *args)
-    elif 'jit' == mode:
+    elif 'jit' == mode or force_jit:
         if force_jit:
             print("FX is unsupported on your pytorch version, falling back to JIT")
         return count_ops_jit(
