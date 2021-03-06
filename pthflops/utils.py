@@ -1,6 +1,9 @@
+import functools
+import inspect
+import warnings
+from typing import Iterable
 
 import torch
-
 
 def print_table(rows, header=['Operation', 'OPS']):
     r"""Simple helper function to print a list of lists as a table
@@ -22,10 +25,26 @@ def print_table(rows, header=['Operation', 'OPS']):
         print(row_format.format(*row))
     print(row_format.format(*['-' * (val - 3) for val in col_max]))
 
+
+def same_device(model, input):
+    # Remove dataparallel wrapper if present
+    if isinstance(model, torch.nn.DataParallel):
+        model = model.module
+
+    # Make sure that the input is on the same device as the model
+    if len(list(model.parameters())):
+        input_device = input.device if not isinstance(input, Iterable) else input[0].device
+        if next(model.parameters()).device != input_device:
+            if isinstance(input, Iterable):
+                for inp in input:
+                    inp.to(next(model.parameters()).device)
+            else:
+                input.to(next(model.parameters()).device)
+
+    return model, input
+
 # Workaround for scopename in pytorch 1.4 and newer
 # see: https://github.com/pytorch/pytorch/issues/33463
-
-
 class scope_name_workaround(object):
     def __init__(self):
         self.backup = None
@@ -64,3 +83,76 @@ class scope_name_workaround(object):
 
     def __exit__(self, type, value, tb):
         setattr(torch.nn.Module, '_slow_forward', self.backup)
+
+# Source: https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically
+string_types = (type(b''), type(u''))
+
+def deprecated(reason):
+    """
+    This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used.
+    """
+    if isinstance(reason, string_types):
+
+        # The @deprecated is used with a 'reason'.
+        #
+        # .. code-block:: python
+        #
+        #    @deprecated("please, use another function")
+        #    def old_function(x, y):
+        #      pass
+
+        def decorator(func1):
+
+            if inspect.isclass(func1):
+                fmt1 = "Call to deprecated class {name} ({reason})."
+            else:
+                fmt1 = "Call to deprecated function {name} ({reason})."
+
+            @functools.wraps(func1)
+            def new_func1(*args, **kwargs):
+                warnings.simplefilter('always', DeprecationWarning)
+                warnings.warn(
+                    fmt1.format(name=func1.__name__, reason=reason),
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+                warnings.simplefilter('default', DeprecationWarning)
+                return func1(*args, **kwargs)
+
+            return new_func1
+
+        return decorator
+
+    elif inspect.isclass(reason) or inspect.isfunction(reason):
+        # The @deprecated is used without any 'reason'.
+        #
+        # .. code-block:: python
+        #
+        #    @deprecated
+        #    def old_function(x, y):
+        #      pass
+
+        func2 = reason
+
+        if inspect.isclass(func2):
+            fmt2 = "Call to deprecated class {name}."
+        else:
+            fmt2 = "Call to deprecated function {name}."
+
+        @functools.wraps(func2)
+        def new_func2(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning)
+            warnings.warn(
+                fmt2.format(name=func2.__name__),
+                category=DeprecationWarning,
+                stacklevel=2
+            )
+            warnings.simplefilter('default', DeprecationWarning)
+            return func2(*args, **kwargs)
+
+        return new_func2
+
+    else:
+        raise TypeError(repr(type(reason)))

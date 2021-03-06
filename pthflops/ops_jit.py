@@ -2,10 +2,9 @@ import re
 from functools import reduce
 from collections import defaultdict
 from distutils.version import LooseVersion
-from typing import Iterable
 import torch
 
-from .utils import print_table, scope_name_workaround
+from .utils import print_table, scope_name_workaround, same_device, deprecated
 
 
 def string_to_shape(node_string, bias=False):
@@ -266,8 +265,8 @@ count_operations = defaultdict(
     }
 )
 
-
-def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
+@deprecated("JIT mode is deprecated, please update to pytorch 1.8.0 or newer and use FX.")
+def count_ops_jit(model, input, custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
     r"""Estimates the number of FLOPs of an :class:`torch.nn.Module`
 
     :param model: the :class:`torch.nn.Module`
@@ -282,18 +281,8 @@ def count_ops(model, input, custom_ops={}, ignore_layers=[], print_readable=True
     :return: number of FLOPs
     :rtype: `int`
     """
-    # Remove dataparallel wrapper if present
-    if isinstance(model, torch.nn.DataParallel):
-        model = model.module
 
-    # Make sure that the input is on the same device as the model
-    input_device = input.device if not isinstance(input, Iterable) else input[0].device
-    if next(model.parameters()).device != input_device:
-        if isinstance(input, Iterable):
-            for inp in input:
-                inp.to(next(model.parameters()).device)
-        else:
-            input.to(next(model.parameters()).device)
+    model, input = same_device(model, input)
 
     # Place the model in eval mode, required for some models
     model_status = model.training

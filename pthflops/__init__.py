@@ -1,3 +1,16 @@
-from .ops import count_ops
+from pthflops.utils import print_table
+from .ops_jit import count_ops_jit
+try:
+    from .ops_fx import count_ops_fx
+except:
+    print('Unable to import torch.fx, you pytorch version may be too old.')
 
-__version__ = '0.3.5'
+__version__ = '0.4.0'
+
+def count_ops(model, input, mode='fx', custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
+    if 'fx' == mode:
+        return count_ops_fx(model, input, custom_ops=custom_ops, ignore_layers=ignore_layers, print_readable=print_table, verbose=verbose, *args)
+    elif 'jit' == mode:
+        return count_ops_jit(model, input, custom_ops=custom_ops, ignore_layers=ignore_layers, print_readable=print_table, verbose=verbose, *args)
+    else:
+        raise ValueError('Unknown mode selected.')
