@@ -5,6 +5,7 @@ from typing import Iterable
 
 import torch
 
+
 def print_table(rows, header=['Operation', 'OPS']):
     r"""Simple helper function to print a list of lists as a table
 
@@ -45,6 +46,8 @@ def same_device(model, input):
 
 # Workaround for scopename in pytorch 1.4 and newer
 # see: https://github.com/pytorch/pytorch/issues/33463
+
+
 class scope_name_workaround(object):
     def __init__(self):
         self.backup = None
@@ -86,6 +89,7 @@ class scope_name_workaround(object):
 
 # Source: https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically
 string_types = (type(b''), type(u''))
+
 
 def deprecated(reason):
     """

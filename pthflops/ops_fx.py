@@ -7,7 +7,8 @@ import torch.nn as nn
 
 from .utils import same_device, print_table
 
-def _count_convNd(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+
+def _count_convNd(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs in conv layer
 
     .. warning::
@@ -39,7 +40,7 @@ def _count_convNd(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs
     return total_ops
 
 
-def _count_relu(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_relu(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs of a  ReLU activation.
     The function will count the comparison operation as a FLOP.
 
@@ -52,7 +53,7 @@ def _count_relu(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs :
     return total_ops
 
 
-def _count_avgpool(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_avgpool(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
     :param node_string: an onnx node defining an average pooling layer
@@ -62,7 +63,8 @@ def _count_avgpool(module : Any, output : torch.Tensor, args : Tuple[Any], kwarg
     """
     out_ops = output.numel()
 
-    kernel_size =  [module.kernel_size] * (output.dim()-2) if isinstance(module.kernel_size, int) else module.kernel_size 
+    kernel_size = [module.kernel_size] * \
+        (output.dim() - 2) if isinstance(module.kernel_size, int) else module.kernel_size
 
     ops_add = reduce(lambda x, y: x * y, kernel_size) - 1
     ops_div = 1
@@ -70,7 +72,7 @@ def _count_avgpool(module : Any, output : torch.Tensor, args : Tuple[Any], kwarg
     return total_ops
 
 
-def _count_globalavgpool(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_globalavgpool(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
     :param node_string: an onnx node defining an average pooling layer
@@ -86,7 +88,7 @@ def _count_globalavgpool(module : Any, output : torch.Tensor, args : Tuple[Any],
     return total_ops
 
 
-def _count_maxpool(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_maxpool(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs of a Max Pooling layer.
 
     :param node_string: an onnx node defining a max pooling layer
@@ -96,13 +98,14 @@ def _count_maxpool(module : Any, output : torch.Tensor, args : Tuple[Any], kwarg
     """
     out_ops = output.numel()
 
-    kernel_size =  [module.kernel_size] * (output.dim()-2) if isinstance(module.kernel_size, int) else module.kernel_size 
+    kernel_size = [module.kernel_size] * \
+        (output.dim() - 2) if isinstance(module.kernel_size, int) else module.kernel_size
     ops_add = reduce(lambda x, y: x * y, kernel_size) - 1
     total_ops = ops_add * out_ops
     return total_ops
 
 
-def _count_bn(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_bn(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs of a Batch Normalisation operation.
 
     :param node_string: an onnx node defining a batch norm op
@@ -114,7 +117,7 @@ def _count_bn(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : D
     return total_ops
 
 
-def _count_linear(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_linear(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of a GEMM or linear layer.
 
     :param node_string: an onnx node defining a GEMM or linear layer
@@ -130,7 +133,7 @@ def _count_linear(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs
     return total_ops
 
 
-def _count_add_mul(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _count_add_mul(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Estimates the number of FLOPs of a summation op.
 
     :param node_string: an onnx node defining a summation op
@@ -141,7 +144,7 @@ def _count_add_mul(module : Any, output : torch.Tensor, args : Tuple[Any], kwarg
     return output.numel() * len(args)
 
 
-def _undefined_op(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs : Dict[str, Any]) -> int:
+def _undefined_op(module: Any, output: torch.Tensor, args: Tuple[Any], kwargs: Dict[str, Any]) -> int:
     r"""Default case for undefined or free (in terms of FLOPs) operations
 
     :param node_string: an onnx node
@@ -151,7 +154,8 @@ def _undefined_op(module : Any, output : torch.Tensor, args : Tuple[Any], kwargs
     """
     return 0
 
-def count_operations(module : Any) -> Any:
+
+def count_operations(module: Any) -> Any:
     if isinstance(module, torch.nn.modules.conv._ConvNd):
         return _count_convNd
     elif isinstance(module, nn.ReLU):
@@ -175,16 +179,16 @@ def count_operations(module : Any) -> Any:
 
 
 class ProfilingInterpreter(torch.fx.Interpreter):
-    def __init__(self, mod : torch.nn.Module, custom_ops : Dict[str, Any] = {}):
+    def __init__(self, mod: torch.nn.Module, custom_ops: Dict[str, Any] = {}):
         gm = torch.fx.symbolic_trace(mod)
         super().__init__(gm)
 
         self.custom_ops = custom_ops
 
-        self.flops : Dict[torch.fx.Node, float] = {}
-        self.parameters : Dict[torch.fx.Node, float] = {}
+        self.flops: Dict[torch.fx.Node, float] = {}
+        self.parameters: Dict[torch.fx.Node, float] = {}
 
-    def run_node(self, n : torch.fx.Node) -> Any:
+    def run_node(self, n: torch.fx.Node) -> Any:
         return_val = super().run_node(n)
         if isinstance(return_val, Tuple):
             self.flops[n] = return_val[1]
@@ -193,7 +197,7 @@ class ProfilingInterpreter(torch.fx.Interpreter):
 
         return return_val
 
-    def call_module(self, target : 'Target', args : Tuple[Any], kwargs : Dict[str, Any]) -> Any:
+    def call_module(self, target: 'Target', args: Tuple[Any], kwargs: Dict[str, Any]) -> Any:
         # Execute the method and return the result
         assert isinstance(target, str)
         submod = self.fetch_attr(target)
@@ -208,7 +212,7 @@ class ProfilingInterpreter(torch.fx.Interpreter):
 
         return output, current_ops, current_params
 
-    def call_function(self, target : 'Target', args : Tuple[Any], kwargs : Dict[str, Any]) -> Any:
+    def call_function(self, target: 'Target', args: Tuple[Any], kwargs: Dict[str, Any]) -> Any:
         assert not isinstance(target, str)
 
         # Execute the function and return the result
@@ -246,7 +250,7 @@ def count_ops_fx(model, input, custom_ops={}, ignore_layers=[], print_readable=T
     ops = 0
     all_data = []
 
-    for name, current_ops in  tracer.flops.items():
+    for name, current_ops in tracer.flops.items():
         if any(name == ign_name for ign_name in ignore_layers):
             continue
 
