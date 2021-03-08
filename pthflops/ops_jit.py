@@ -2,12 +2,13 @@ import re
 from functools import reduce
 from collections import defaultdict
 from distutils.version import LooseVersion
+from typing import Any, Dict, List, Tuple,
 import torch
 
 from .utils import print_table, scope_name_workaround, same_device, deprecated
 
 
-def string_to_shape(node_string, bias=False):
+def string_to_shape(node_string: str, bias: bool = False):
     r"""Extract the shape of a given tensor from an onnx string
 
     :param node_string: a :class:`str` or the node from which the shape will be extracted
@@ -26,7 +27,7 @@ def string_to_shape(node_string, bias=False):
     return m if m is None else tuple(int(x) for x in m.groups()[0].split(','))
 
 
-def _parse_node_inputs(node, version=2):
+def _parse_node_inputs(node: str, version: int = 2):
     inputs = {}
     inputs_names = []
     for idx, inp in enumerate(node.inputs()):
@@ -52,7 +53,7 @@ def _parse_node_inputs(node, version=2):
     return inputs, inputs_names
 
 
-def parse_node_info(node, version=2):
+def parse_node_info(node: str, version: int = 2):
     inputs, inputs_names = _parse_node_inputs(node, version=version)
     node = str(node)
     node_name = re.search(r'%(.*) : ', node).group(1)
@@ -64,7 +65,7 @@ def parse_node_info(node, version=2):
     return node_name, inputs, inputs_names, int(out_size)
 
 
-def _count_convNd(node, version=2):
+def _count_convNd(node: str, version: int = 2):
     r"""Estimates the number of FLOPs in conv layer
 
     .. warning::
@@ -101,7 +102,7 @@ def _count_convNd(node, version=2):
     return total_ops
 
 
-def _count_relu(node, version=2):
+def _count_relu(node: str, version: int = 2):
     r"""Estimates the number of FLOPs of a  ReLU activation.
     The function will count the comparison operation as a FLOP.
 
@@ -119,7 +120,7 @@ def _count_relu(node, version=2):
     return total_ops
 
 
-def _count_avgpool(node, version=2):
+def _count_avgpool(node: str, version: int = 2):
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
     :param node_string: an onnx node defining an average pooling layer
@@ -139,7 +140,7 @@ def _count_avgpool(node, version=2):
     return total_ops
 
 
-def _count_globalavgpool(node, version=2):
+def _count_globalavgpool(node: str, version: int = 2):
     r"""Estimates the number of FLOPs of an Average Pooling layer.
 
     :param node_string: an onnx node defining an average pooling layer
@@ -161,7 +162,7 @@ def _count_globalavgpool(node, version=2):
     return total_ops
 
 
-def _count_maxpool(node, version=2):
+def _count_maxpool(node: str, version: int = 2):
     r"""Estimates the number of FLOPs of a Max Pooling layer.
 
     :param node_string: an onnx node defining a max pooling layer
@@ -180,7 +181,7 @@ def _count_maxpool(node, version=2):
     return total_ops
 
 
-def _count_bn(node, version=2):
+def _count_bn(node: str, version: int = 2):
     r"""Estimates the number of FLOPs of a Batch Normalisation operation.
 
     :param node_string: an onnx node defining a batch norm op
@@ -201,7 +202,7 @@ def _count_bn(node, version=2):
     return total_ops
 
 
-def _count_linear(node, version=2):
+def _count_linear(node: str, version: int = 2):
     r"""Estimates the number of a GEMM or linear layer.
 
     :param node_string: an onnx node defining a GEMM or linear layer
@@ -223,7 +224,7 @@ def _count_linear(node, version=2):
     return total_ops
 
 
-def _count_add_mul(node, version=2):
+def _count_add_mul(node: str, version: int = 2):
     r"""Estimates the number of FLOPs of a summation op.
 
     :param node_string: an onnx node defining a summation op
@@ -239,7 +240,7 @@ def _count_add_mul(node, version=2):
     return reduce(lambda x, y: x * y, inp)
 
 
-def _undefined_op(node, version=2):
+def _undefined_op(node: str, version: int = 2):
     r"""Default case for undefined or free (in terms of FLOPs) operations
 
     :param node_string: an onnx node
@@ -267,7 +268,14 @@ count_operations = defaultdict(
 
 
 @deprecated("JIT mode is deprecated, please update to pytorch 1.8.0 or newer and use FX.")
-def count_ops_jit(model, input, custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
+def count_ops_fx(model: torch.nn.Module,
+                 input: torch.Tensor,
+                 custom_ops: Dict[Any,
+                                  Any] = {},
+                 ignore_layers: List[str] = [],
+                 print_readable: bool = True,
+                 verbose: bool = True,
+                 *args):
     r"""Estimates the number of FLOPs of an :class:`torch.nn.Module`
 
     :param model: the :class:`torch.nn.Module`

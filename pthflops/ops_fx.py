@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple,
 
 import torch
 import torch.fx
@@ -223,7 +223,14 @@ class ProfilingInterpreter(torch.fx.Interpreter):
         return output, current_ops, 0
 
 
-def count_ops_fx(model, input, custom_ops={}, ignore_layers=[], print_readable=True, verbose=True, *args):
+def count_ops_fx(model: torch.nn.Module,
+                 input: torch.Tensor,
+                 custom_ops: Dict[Any,
+                                  Any] = {},
+                 ignore_layers: List[str] = [],
+                 print_readable: bool = True,
+                 verbose: bool = True,
+                 *args):
     r"""Estimates the number of FLOPs of an :class:`torch.nn.Module`
 
     :param model: the :class:`torch.nn.Module`
@@ -251,7 +258,9 @@ def count_ops_fx(model, input, custom_ops={}, ignore_layers=[], print_readable=T
     all_data = []
 
     for name, current_ops in tracer.flops.items():
-        if any(name == ign_name for ign_name in ignore_layers):
+        model_status = model.training
+
+        if any(name.name == ign_name for ign_name in ignore_layers):
             continue
 
         ops += current_ops
@@ -264,9 +273,6 @@ def count_ops_fx(model, input, custom_ops={}, ignore_layers=[], print_readable=T
             print_table(all_data)
         print("Input size: {0}".format(tuple(input.shape)))
         print("{:,} FLOPs or approx. {:,.2f} GFLOPs".format(ops, ops / 1e+9))
-
-    if model_status:
-        model.train()
 
     if model_status:
         model.train()

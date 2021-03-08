@@ -20,6 +20,8 @@ git clone https://github.com/1adrianb/pytorch-estimate-flops && pytorch-estimate
 python setup.py install
 ```
 
+Note: pytorch 1.8 or newer is recommended.
+
 ## Example
 
 ```python
@@ -61,7 +63,12 @@ net = nn.Sequential(
     CustomLayer()
 )
 
-# Count the number of FLOPs
+# Count the number of FLOPs, jit mode:
 count_ops(net, inp, ignore_layers=['CustomLayer'])
+
+# Note: if you are using python 1.8 or newer with fx instead of jit, the naming convention changed. As such, you will have to pass ['_2_conv1']
+# Please check your model definition to account for this.
+# Count the number of FLOPs, fx mode:
+count_ops(net, inp, ignore_layers=['_2_conv1'])
 
 ```
