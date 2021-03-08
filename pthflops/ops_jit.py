@@ -268,7 +268,7 @@ count_operations = defaultdict(
 
 
 @deprecated("JIT mode is deprecated, please update to pytorch 1.8.0 or newer and use FX.")
-def count_ops_fx(model: torch.nn.Module,
+def count_ops_jit(model: torch.nn.Module,
                  input: torch.Tensor,
                  custom_ops: Dict[Any,
                                   Any] = {},
