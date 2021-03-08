@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Any, Dict, List, Tuple,
+from typing import Any, Dict, List, Tuple
 
 import torch
 import torch.fx

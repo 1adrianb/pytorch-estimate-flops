@@ -2,7 +2,7 @@ import re
 from functools import reduce
 from collections import defaultdict
 from distutils.version import LooseVersion
-from typing import Any, Dict, List, Tuple,
+from typing import Any, Dict, List, Tuple
 import torch
 
 from .utils import print_table, scope_name_workaround, same_device, deprecated
