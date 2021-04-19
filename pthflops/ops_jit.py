@@ -42,7 +42,8 @@ def _parse_node_inputs(node: str, version: int = 2):
             extracted_data = extracted_data.group(1)
         else:
             return _parse_node_inputs(
-                list(node.inputs())[0].node()
+                list(node.inputs())[0].node(),
+                version
             )
         if version <= 2:
             inputs[curr_node_name] = re.findall(r'(\d+):', extracted_data)
