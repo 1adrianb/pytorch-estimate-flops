@@ -58,10 +58,17 @@ def parse_node_info(node: str, version: int = 2):
     inputs, inputs_names = _parse_node_inputs(node, version=version)
     node = str(node)
     node_name = re.search(r'%(.*) : ', node).group(1)
+    out_size = 0
     if version == 2:
-        out_size = re.search(r'Float\(\d+:(\d+),', node).group(1)
+        out_size = re.search(r'Float\(\d+:(\d+),', node)
     elif version == 3:
-        out_size = re.search(r'strides=\[(\d+),', node).group(1)
+        out_size = re.search(r'strides=\[(\d+),', node)
+
+    if out_size:
+        out_size = out_size.group(1)
+    else:
+        out_size = 0
+        print("Unable to parse output size of node: {0}, then the output size is 0".format(node))
 
     return node_name, inputs, inputs_names, int(out_size)
 
