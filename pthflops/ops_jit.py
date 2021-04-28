@@ -277,13 +277,13 @@ count_operations = defaultdict(
 
 @deprecated("JIT mode is deprecated, please update to pytorch 1.8.0 or newer and use FX.")
 def count_ops_jit(model: torch.nn.Module,
-                 input: torch.Tensor,
-                 custom_ops: Dict[Any,
-                                  Any] = {},
-                 ignore_layers: List[str] = [],
-                 print_readable: bool = True,
-                 verbose: bool = True,
-                 *args):
+                  input: torch.Tensor,
+                  custom_ops: Dict[Any,
+                                   Any] = {},
+                  ignore_layers: List[str] = [],
+                  print_readable: bool = True,
+                  verbose: bool = True,
+                  *args):
     r"""Estimates the number of FLOPs of an :class:`torch.nn.Module`
 
     :param model: the :class:`torch.nn.Module`
