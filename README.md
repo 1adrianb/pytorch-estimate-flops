@@ -16,7 +16,7 @@ pip install pthflops
 ```
 or directly from the github repository:
 ```bash
-git clone https://github.com/1adrianb/pytorch-estimate-flops && pytorch-estimate-flops
+git clone https://github.com/1adrianb/pytorch-estimate-flops && cd pytorch-estimate-flops
 python setup.py install
 ```
 
