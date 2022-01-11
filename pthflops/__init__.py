@@ -1,4 +1,3 @@
-from pthflops.utils import print_table
 from .ops_jit import count_ops_jit
 try:
     from .ops_fx import count_ops_fx
@@ -17,7 +16,7 @@ def count_ops(model, input, mode='fx', custom_ops={}, ignore_layers=[], print_re
             input,
             custom_ops=custom_ops,
             ignore_layers=ignore_layers,
-            print_readable=print_table,
+            print_readable=print_readable,
             verbose=verbose,
             *args)
     elif 'jit' == mode or force_jit:
@@ -28,7 +27,7 @@ def count_ops(model, input, mode='fx', custom_ops={}, ignore_layers=[], print_re
             input,
             custom_ops=custom_ops,
             ignore_layers=ignore_layers,
-            print_readable=print_table,
+            print_readable=print_readable,
             verbose=verbose,
             *args)
     else:
