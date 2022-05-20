@@ -22,6 +22,7 @@ jobs:
         run: |
           conda create -q -n test-environment python=${{ matrix.python-version }}
           source activate test-environment
+          pip install Pillow==6.1
           if [[ "${{ matrix.pytorch-version }}" == "nightly" ]]; then
             conda install pytorch torchvision cpuonly -c pytorch-nightly 
           else
